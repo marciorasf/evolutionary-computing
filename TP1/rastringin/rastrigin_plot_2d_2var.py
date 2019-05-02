@@ -9,11 +9,52 @@ import numpy as np
 import operator
 import matplotlib.pyplot as plt
 
+class Rastrigin():
+
+    def __get_error_surface_volume(self, *X, **kwargs):
+        A = kwargs.get('A', 10)
+        return A + sum([(np.square(x) - A * np.cos(2 * np.pi * x)) for x in X])
+
+
+    def evaluate(self, position):
+        A = 10
+        return A + np.sum([(np.square(x) - A * np.cos(2 * np.pi * x)) for x in position])
+
+    
+    def get_surface(self, resolution=200, bound=5.12):
+        
+        X = np.linspace(-bound, bound, resolution)    
+        Y = np.linspace(-bound, bound, resolution)  
+        
+        X, Y = np.meshgrid(X, Y)
+        Z = self.__get_error_surface_volume(X, Y, A=10)
+        return np.stack((X, Y, Z))
+
+# A way of plotting each step of the optimisation process.
+def plot(surface, positions, best_fitness, best_position, iteration):
+    plt.cla()
+    
+    # Plot the feature / error surface.
+    plt.pcolormesh(surface[0], surface[1], surface[2])
+
+    # Plot all of the genepool.
+    x, y = zip(*positions)
+    plt.scatter(x, y, 1, 'k', edgecolors='face')
+    
+    # Plot the best gene.
+    plt.scatter(best_position[0], best_position[1], 20, 'w', edgecolors='face')
+
+    # Add the title to the plot.
+    title = "iteration {}, fitness {}".format(iteration, best_fitness)
+    plt.title(title)
+
+# Classe com as funcoes para transformar binario <-> real
 class Codificacao:
     pass
     def __init__(self):
         return
     
+    # Retorna a representacao binaria de um valor real utilizando n_bits entre os limites passados como parametro
     @staticmethod
     def codifica(valor_real, lim_inferior, lim_superior, n_bits):
         if valor_real < lim_inferior:
@@ -31,6 +72,7 @@ class Codificacao:
             vetor_bin[n_bits-1-i] = int(valor_bin[tam_valor_bin-1-i])
         return vetor_bin
 
+    # Retorna um numero real equivalente ao numero binario passado
     @staticmethod
     def decodifica(vetor_bin, lim_inferior, lim_superior, n_bits):
         delta_x = (lim_superior - lim_inferior)/(2**n_bits-1)
@@ -46,6 +88,7 @@ class Codificacao:
         
         return(valor_real)
     
+    # Converte um numero em codigo binario padrao para codigo de gray
     @staticmethod
     def bin_2_gray(vetor_bin):
         vetor_gray = []
@@ -54,6 +97,7 @@ class Codificacao:
             vetor_gray.append(vetor_bin[i-1]^vetor_bin[i])
         return(vetor_gray)
         
+    # Converte um numero representado em codigo de gray para binario
     @staticmethod    
     def gray_2_bin(vetor_gray):
         vetor_bin = []
@@ -62,8 +106,7 @@ class Codificacao:
             vetor_bin.append(vetor_bin[i-1]^vetor_gray[i])
         return(vetor_bin)
         
-        
-        
+
 class Individuo:
     def __init__(self, bits_individuo, n_variaveis, lim_inferior, lim_superior):
         self.bits_individuo = bits_individuo
@@ -90,6 +133,14 @@ class Individuo:
             var_real.append(Codificacao.decodifica(self.var_bin[i], self.lim_inferior, self.lim_superior, self.bits_individuo))
         self.var_real = var_real
         return
+    
+    # Calcula as variaveis binarias a partir das variaveis reais
+    def calcula_var_bin(self):
+        var_bin = []
+        for i in range(0, self.n_variaveis):
+            var_bin.append(Codificacao.codifica(self.var_real[i], self.lim_inferior, self.lim_superior, self.bits_individuo))
+        self.var_bin = var_bin
+        return
             
     # Calcula a funcao rastrigin para as variaveis do individuo    
     def calcula_rastrigin(self):
@@ -101,8 +152,9 @@ class Individuo:
     
     # Imprime os atributos do individuo
     def print_individuo(self):
-        print(str(self.var_real)+', '+str(self.rastrigin_valor))
+        print(str(self.rastrigin_valor)+', '+str(self.var_real))
         return
+
 
 class Populacao:
     def __init__(self, tamanho_populacao):
@@ -111,7 +163,7 @@ class Populacao:
         self.reta_prob = []
         return 
     
-    # Gera populacao aleatoria
+    # Gera uma populacao aleatoria
     def gera_populacao_aleatoria(self, bits_individuo, n_variaveis, lim_inferior, lim_superior):
         for i in range(0, self.tamanho_populacao):
             individuo = Individuo(bits_individuo, n_variaveis, lim_inferior, lim_superior)
@@ -120,19 +172,25 @@ class Populacao:
             self.individuos.append(individuo)
         return
             
-    # Calcula fitness de todos individuos
+    # Calcula fitness de todos individuos da populacao
     def calcula_rastrigin(self):
         for individuo in self.individuos:
             individuo.calcula_rastrigin()
         return
         
-     # Calcula fitness de todos individuos
+    # Calcula fitness de todos individuos da populacao
     def calcula_var_real(self):
         for individuo in self.individuos:
             individuo.calcula_var_real()
         return
     
-    # Ordena a lista individuos pela ordem do valor da rastrigin dos individuos
+    # Dado que o individuo possui as variaveis reais, calcula as representacoes binarias das variaveis
+    def calcula_var_bin(self):
+        for individuo in self.individuos:
+            individuo.calcula_var_bin()
+        return
+    
+    # Ordena a lista individuos pela ordem do valor da rastrigin dos individuos, ordem decrescente
     def ordena_por_rastrigin(self):
         self.individuos.sort(key=operator.attrgetter('rastrigin_valor'), reverse=True)
         return
@@ -147,11 +205,14 @@ class Populacao:
     def melhor_individuo(self):
         return self.individuos[self.tamanho_populacao-1]
     
+    
 class Selecao:
     pass
     def __init__(self):
         return
     
+    # Calcula as probabilidades de selecao para cada individuo da populacao baseado no rankeamento
+    # E necessario que a populacao esteja ordenada
     @staticmethod
     def calcula_probs_ranking(populacao, inclinacao_reta):
         s = inclinacao_reta
@@ -161,6 +222,7 @@ class Selecao:
             individuo.prob_selecao = (2-s)/tam + (2*(i)*(s-1))/(tam*(tam-1))
             i += 1
         
+    # Gera a reta de probabilidade utilizada pela roleta
     @staticmethod    
     def gera_reta_prob(populacao):
         prob_atual = 0;
@@ -173,6 +235,8 @@ class Selecao:
         populacao.reta_prob = reta_prob
         return
         
+    # Seleciona 2 pais uutilizando o metodo da roleta
+    # Requer que a reta_prob tenha sido gerada
     @staticmethod
     def seleciona_pais_roleta(populacao):
         prob_pai1 = np.random.uniform(0,1)
@@ -193,6 +257,7 @@ class Selecao:
                 break
         return(pais)
         
+    # Seleciona dois pais utilizando torneio
     @staticmethod    
     def seleciona_pais_torneio(populacao, participantes):
         if participantes > populacao.tamanho_populacao:
@@ -206,11 +271,13 @@ class Selecao:
         pais.append(populacao.individuos[index_pais2[participantes-1]])
         return(pais)
         
+        
 class Cruzamento:
     pass
     def __init__(self):
         return
         
+    # Crossover binario utilizando um ponto de corte aleatorio
     def crossover_1_ponto(pais):
         bits_individuo = pais[0].bits_individuo
         n_variaveis = pais[0].n_variaveis
@@ -227,17 +294,48 @@ class Cruzamento:
             filho2[pos_corte:bits_individuo] = pai1[pos_corte:bits_individuo]
             filhos[0].var_bin.append(filho1)
             filhos[1].var_bin.append(filho2)
+        for individuo in filhos:
+            individuo.calcula_var_real()
+            individuo.calcula_rastrigin()
+        return(filhos)
+    
+    # Crossover binario uniforme
+    # A cada bit do filho, e' gerado um numero aleatorio para decidir se o bit sera do pai1 ou pai2
+    def crossover_uniforme(pais):
+        bits_individuo = pais[0].bits_individuo
+        n_variaveis = pais[0].n_variaveis
+        lim_inferior = pais[0].lim_inferior
+        lim_superior = pais[0].lim_superior
+        filhos = [Individuo(bits_individuo, n_variaveis, lim_inferior, lim_superior), Individuo(bits_individuo, n_variaveis, lim_inferior, lim_superior)]
+        for i in range(0,n_variaveis):
+            pai1 = pais[0].var_bin[i]
+            pai2 = pais[1].var_bin[i]
+            filho1 = []
+            filho2 = []
+            for j in range(0,bits_individuo):
+                if np.random.uniform(0,1) > 0.5:
+                    filho1.append(pai1[j])
+                    filho2.append(pai2[j])
+                else:
+                    filho2.append(pai1[j])
+                    filho1.append(pai2[j])
+                    
+            filhos[0].var_bin.append(filho1)
+            filhos[1].var_bin.append(filho2)
             
         for individuo in filhos:
             individuo.calcula_var_real()
             individuo.calcula_rastrigin()
         return(filhos)
     
+    
 class Mutacao:
     pass
     def __init__(self):
         return
         
+    # Mutacao binaria bit flip
+    # A mutacao e' feita para cada bit
     @staticmethod
     def bit_flip(individuo, prob_mutacao):
         for var in range(0,individuo.n_variaveis):
@@ -250,64 +348,118 @@ class Mutacao:
                         var_bin[i] = 0
             individuo.var_bin[var] = var_bin
         return    
-
-
-n_bits = 16
-n_variaveis = 4
-n_geracoes = 200
-limite_inferior = -5.12
-limite_superior = 5.12
-tam_pop = 100
-inclinacao_reta = 2
-
-participantes_torneio = 2
-prob_mutacao = 0.03
-prob_cruzamento = 0.9
-prob_torneio = 0.5
-
-populacao = Populacao(tam_pop)
-populacao.gera_populacao_aleatoria(n_bits, n_variaveis, limite_inferior, limite_superior)
-populacao.ordena_por_rastrigin()
-
-for ger in range(0,n_geracoes):
-    print('geracao '+str(ger))
-    populacao_nova = Populacao(tam_pop)
-
-    Selecao.calcula_probs_ranking(populacao,inclinacao_reta)
-    Selecao.gera_reta_prob(populacao)
     
-    for i in range(0, int(tam_pop/2)):
-        # Selecao dos pais
-        if prob_torneio > np.random.uniform(0,1):
-            pais = Selecao.seleciona_pais_torneio(populacao, participantes_torneio)
-        else:
-            pais = Selecao.seleciona_pais_roleta(populacao)
+def run():
+    function = Rastrigin()
+    surface = function.get_surface()
+    
+    n_bits = 16
+    n_variaveis = 2
+    n_geracoes = 100
+    lim_inf = -5.12
+    lim_sup = 5.12
+    tam_pop = 100
+    inclinacao_reta = 1.9
+    prob_mutacao = 8/n_bits
+
+    participantes_torneio = 2
+    prob_cruzamento = 1
+    prob_torneio = 0.5
+    passo_mut = int(n_geracoes*0.35)
+    
+    if passo_mut < 1:
+        passo_mut = 1
         
-        # Cruzamento dos pais escolhidos
-        if prob_cruzamento > np.random.uniform(0,1):
-            filhos = Cruzamento.crossover_1_ponto(pais)
-        else:
-            # Necessario fazer isso para instanciar novos objetos
-            filhos = [Individuo(n_bits, n_variaveis, limite_inferior, limite_superior),Individuo(n_bits, n_variaveis, limite_inferior, limite_superior)]
-            filhos[0].var_bin = pais[0].var_bin
-            filhos[1].var_bin = pais[1].var_bin
+    elitismo = 0.7
+    if elitismo > 1:
+        elitismo = 1
+    tam_elite = int(tam_pop*elitismo)
+
+    populacao = Populacao(tam_pop)
+    populacao.gera_populacao_aleatoria(n_bits, n_variaveis, lim_inf, lim_sup)
+    populacao.ordena_por_rastrigin()
+    
+    for ger in range(0,n_geracoes):
+        Selecao.calcula_probs_ranking(populacao,inclinacao_reta)
+        Selecao.gera_reta_prob(populacao)
+        populacao_filhos = Populacao(tam_pop)
+        if ger%passo_mut == 0:
+            prob_mutacao = prob_mutacao*0.25
             
+        for i in range(0, int(tam_pop/2)):
+            # Selecao dos pais
+            if prob_torneio > np.random.uniform(0,1):
+                pais = Selecao.seleciona_pais_torneio(populacao, participantes_torneio)
+            else:
+                pais = Selecao.seleciona_pais_roleta(populacao)
+
+            # Cruzamento dos pais escolhidos 
+            if prob_cruzamento > np.random.uniform(0,1):
+                filhos = Cruzamento.crossover_1_ponto(pais)
+            else:
+                # Necessario fazer isso para instanciar novos objetos
+                filhos = [Individuo(n_bits, n_variaveis, lim_inf, lim_sup),Individuo(n_bits, n_variaveis, lim_inf, lim_sup)]
+                filhos[0].var_bin = pais[0].var_bin
+                filhos[1].var_bin = pais[1].var_bin
+            for individuo in filhos:
+                populacao_filhos.individuos.append(individuo)
+
         # Mutacao dos filhos
         # A prob de mutacao e utilizada dentro do metodo bit_flip
-        for individuo in filhos:
+        for individuo in populacao_filhos.individuos:
             Mutacao.bit_flip(individuo, prob_mutacao)
+            individuo.calcula_var_real()
+            individuo.calcula_rastrigin()
         
-        for individuo in filhos:
-            populacao_nova.individuos.append(individuo)
+        populacao_filhos.ordena_por_rastrigin()
+        populacao.ordena_por_rastrigin()
+        
+        f_add = 1
+        p_add = 1
+        for k in range(0, tam_elite):
+            if populacao.individuos[tam_pop-p_add].rastrigin_valor < populacao_filhos.individuos[tam_pop-f_add].rastrigin_valor:
+                p_add += 1
+            else:
+                populacao.individuos.append(populacao_filhos.individuos[tam_pop-f_add])
+                f_add += 1
+        f_add -= 1
+        
+        populacao.ordena_por_rastrigin()
+        
+        del populacao.individuos[0:tam_pop-tam_elite+f_add]
+        
+        indexes_non_elite = np.arange(tam_elite, tam_pop)
+        np.random.shuffle(indexes_non_elite)
+        indexes_non_elite = indexes_non_elite[0:tam_pop-tam_elite]
+        
+        for k in range(0, tam_pop-tam_elite):
+            populacao.individuos.append(populacao_filhos.individuos[indexes_non_elite[k]])
+           
+        populacao.ordena_por_rastrigin()
+        
+        if populacao.individuos[tam_pop-1].rastrigin_valor < 8e-5:
+            break
+        
+        # Get the gene pool and the fitnesses.
+        positions = []
+        fitnesses = []
+        for individuo in populacao.individuos:
+            positions.append(individuo.var_real)
+            fitnesses.append(individuo.rastrigin_valor)
+        
+        # Get the best gene
+        melhor_individuo = populacao.melhor_individuo()
+        best_position = melhor_individuo.var_real
+        best_fitness = melhor_individuo.rastrigin_valor
     
-    populacao_nova.calcula_var_real()
-    populacao_nova.calcula_rastrigin()
-    populacao_nova.ordena_por_rastrigin()
-    melhor_pop_nova = populacao_nova.melhor_individuo()
-    melhor_pop_antiga = populacao.melhor_individuo()
-    if melhor_pop_antiga.rastrigin_valor < melhor_pop_nova.rastrigin_valor:
-        populacao_nova.individuos[0] = melhor_pop_antiga
-        populacao_nova.ordena_por_rastrigin()
-    populacao = populacao_nova
-melhor = populacao.melhor_individuo()
-melhor.print_individuo()
+        # Plot the optimsation
+        plot(surface, positions, best_fitness, best_position, ger)
+        if ger % 1 == 0:
+            plt.show()
+            
+    melhor = populacao.melhor_individuo()
+    melhor.print_individuo()
+    print('geracoes = '+str(ger))
+    return(melhor.rastrigin_valor)
+
+run()
