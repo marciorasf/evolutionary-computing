@@ -1,52 +1,18 @@
 # -*- coding: utf-8 -*-
+
+
+# -*- coding: utf-8 -*-
 """
 Created on Tue Apr 23 19:20:08 2019
 
 @author: Marcio Souza Filho
+
+# A funcao que executa o algoritmo genetico e a funcao GA()
+
 """
 
 import numpy as np
 import operator
-import matplotlib.pyplot as plt
-
-class Rastrigin():
-
-    def __get_error_surface_volume(self, *X, **kwargs):
-        A = kwargs.get('A', 10)
-        return A + sum([(np.square(x) - A * np.cos(2 * np.pi * x)) for x in X])
-
-
-    def evaluate(self, position):
-        A = 10
-        return A + np.sum([(np.square(x) - A * np.cos(2 * np.pi * x)) for x in position])
-
-    
-    def get_surface(self, resolution=200, bound=5.12):
-        
-        X = np.linspace(-bound, bound, resolution)    
-        Y = np.linspace(-bound, bound, resolution)  
-        
-        X, Y = np.meshgrid(X, Y)
-        Z = self.__get_error_surface_volume(X, Y, A=10)
-        return np.stack((X, Y, Z))
-
-# A way of plotting each step of the optimisation process.
-def plot(surface, positions, best_fitness, best_position, iteration):
-    plt.cla()
-    
-    # Plot the feature / error surface.
-    plt.pcolormesh(surface[0], surface[1], surface[2])
-
-    # Plot all of the genepool.
-    x, y = zip(*positions)
-    plt.scatter(x, y, 1, 'k', edgecolors='face')
-    
-    # Plot the best gene.
-    plt.scatter(best_position[0], best_position[1], 20, 'w', edgecolors='face')
-
-    # Add the title to the plot.
-    title = "iteration {}, fitness {}".format(iteration, best_fitness)
-    plt.title(title)
 
 # Classe com as funcoes para transformar binario <-> real
 class Codificacao:
@@ -88,6 +54,7 @@ class Codificacao:
         
         return(valor_real)
     
+    # Os metodos envolvendo codigo de gray nao foram utilizados
     # Converte um numero em codigo binario padrao para codigo de gray
     @staticmethod
     def bin_2_gray(vetor_bin):
@@ -107,6 +74,7 @@ class Codificacao:
         return(vetor_bin)
         
 
+# Classe resposavel por representar os individuos da populacao
 class Individuo:
     def __init__(self, bits_individuo, n_variaveis, lim_inferior, lim_superior):
         self.bits_individuo = bits_individuo
@@ -150,7 +118,7 @@ class Individuo:
         self.rastrigin_valor = self.rastrigin_valor
         return
     
-    # Imprime os atributos do individuo
+    # Imprime os atributos do individuo. Utilizada somente durante desenvolvimento
     def print_individuo(self):
         print(str(self.rastrigin_valor)+', '+str(self.var_real))
         return
@@ -172,7 +140,7 @@ class Populacao:
             self.individuos.append(individuo)
         return
             
-    # Calcula fitness de todos individuos da populacao
+    # Calcula a funcao Rastrigin de todos individuos da populacao
     def calcula_rastrigin(self):
         for individuo in self.individuos:
             individuo.calcula_rastrigin()
@@ -195,7 +163,7 @@ class Populacao:
         self.individuos.sort(key=operator.attrgetter('rastrigin_valor'), reverse=True)
         return
         
-    # Imprime os dados da populacao na tela
+    # Imprime os dados da populacao na tela. Somente para desenvolvimento
     def print_populacao(self):
         for individuo in self.individuos:
             individuo.print_individuo()
@@ -299,6 +267,7 @@ class Cruzamento:
             individuo.calcula_rastrigin()
         return(filhos)
     
+    # Nao foi utilizado
     # Crossover binario uniforme
     # A cada bit do filho, e' gerado um numero aleatorio para decidir se o bit sera do pai1 ou pai2
     def crossover_uniforme(pais):
@@ -319,10 +288,8 @@ class Cruzamento:
                 else:
                     filho2.append(pai1[j])
                     filho1.append(pai2[j])
-                    
             filhos[0].var_bin.append(filho1)
             filhos[1].var_bin.append(filho2)
-            
         for individuo in filhos:
             individuo.calcula_var_real()
             individuo.calcula_rastrigin()
@@ -348,45 +315,53 @@ class Mutacao:
                         var_bin[i] = 0
             individuo.var_bin[var] = var_bin
         return    
-    
-def run():
-    function = Rastrigin()
-    surface = function.get_surface()
-    
+
+def GA(nvar, ncal):
+    # define os hiper-parametros
     n_bits = 16
-    n_variaveis = 2
-    n_geracoes = 100
+    n_variaveis = nvar
     lim_inf = -5.12
     lim_sup = 5.12
     tam_pop = 100
+    n_geracoes = int((ncal-tam_pop)/tam_pop)
     inclinacao_reta = 1.9
     prob_mutacao = 8/n_bits
 
     participantes_torneio = 2
     prob_cruzamento = 1
     prob_torneio = 0.5
-    passo_mut = int(n_geracoes*0.35)
+    passo_mut = int(n_geracoes*0.33)
     
     if passo_mut < 1:
         passo_mut = 1
         
-    elitismo = 0.7
+    elitismo = 0.65
     if elitismo > 1:
         elitismo = 1
     tam_elite = int(tam_pop*elitismo)
-
+    
+    
+    # inicializa uma populacao aleatoria
     populacao = Populacao(tam_pop)
     populacao.gera_populacao_aleatoria(n_bits, n_variaveis, lim_inf, lim_sup)
     populacao.ordena_por_rastrigin()
     
     for ger in range(0,n_geracoes):
+        
+        # Calcula as probabilidades de selecao e gera reta de probabilidades
         Selecao.calcula_probs_ranking(populacao,inclinacao_reta)
         Selecao.gera_reta_prob(populacao)
+        
+        # Instancia uma populacao de filhos vazia
         populacao_filhos = Populacao(tam_pop)
+        
+        # Verifica se deve aalterar a prob_mutacao na geracao atual
         if ger%passo_mut == 0:
             prob_mutacao = prob_mutacao*0.25
             
+        #Geracao da nova populacao
         for i in range(0, int(tam_pop/2)):
+            
             # Selecao dos pais
             if prob_torneio > np.random.uniform(0,1):
                 pais = Selecao.seleciona_pais_torneio(populacao, participantes_torneio)
@@ -397,7 +372,7 @@ def run():
             if prob_cruzamento > np.random.uniform(0,1):
                 filhos = Cruzamento.crossover_1_ponto(pais)
             else:
-                # Necessario fazer isso para instanciar novos objetos
+                # Necessario fazer isso para instanciar novos objetos caso nao haja cruzamento
                 filhos = [Individuo(n_bits, n_variaveis, lim_inf, lim_sup),Individuo(n_bits, n_variaveis, lim_inf, lim_sup)]
                 filhos[0].var_bin = pais[0].var_bin
                 filhos[1].var_bin = pais[1].var_bin
@@ -411,9 +386,11 @@ def run():
             individuo.calcula_var_real()
             individuo.calcula_rastrigin()
         
+        
         populacao_filhos.ordena_por_rastrigin()
         populacao.ordena_por_rastrigin()
         
+        # Seleciona a quantidade dos melhores individuos, determinada pelo parametro elitimso
         f_add = 1
         p_add = 1
         for k in range(0, tam_elite):
@@ -426,8 +403,10 @@ def run():
         
         populacao.ordena_por_rastrigin()
         
+        # Deleta individuos da populacao antiga substituidos pelos melhores individuos da nova geracao
         del populacao.individuos[0:tam_pop-tam_elite+f_add]
         
+        # Completa a nova populacao com  individuos aleatorios que sobraram na populacao filha
         indexes_non_elite = np.arange(tam_elite, tam_pop)
         np.random.shuffle(indexes_non_elite)
         indexes_non_elite = indexes_non_elite[0:tam_pop-tam_elite]
@@ -437,29 +416,9 @@ def run():
            
         populacao.ordena_por_rastrigin()
         
-        if populacao.individuos[tam_pop-1].rastrigin_valor < 8e-5:
+        # Condicao de parada
+        if populacao.individuos[tam_pop-1].rastrigin_valor < 1e-4:
             break
-        
-        # Get the gene pool and the fitnesses.
-        positions = []
-        fitnesses = []
-        for individuo in populacao.individuos:
-            positions.append(individuo.var_real)
-            fitnesses.append(individuo.rastrigin_valor)
-        
-        # Get the best gene
-        melhor_individuo = populacao.melhor_individuo()
-        best_position = melhor_individuo.var_real
-        best_fitness = melhor_individuo.rastrigin_valor
-    
-        # Plot the optimsation
-        plot(surface, positions, best_fitness, best_position, ger)
-        if ger % 1 == 0:
-            plt.show()
-            
-    melhor = populacao.melhor_individuo()
-    melhor.print_individuo()
-    print('geracoes = '+str(ger))
-    return(melhor.rastrigin_valor)
 
-run()
+    melhor = populacao.melhor_individuo()
+    return(melhor.var_real, melhor.rastrigin_valor)

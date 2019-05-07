@@ -3,13 +3,14 @@
 Created on Thu Apr 11 22:43:54 2019
 
 @author: Marcio Souza Filho
+
+!!!!!! A funcao que executa o algoritmo genetico esta no final do codigo com nome GA
 """
 import matplotlib.pyplot as plt
 import numpy as np
 import operator
 
 class Individuo:
-    # Initializer / Instance Attributes
     def __init__(self, dimensao_individuo):
         self.dimensao_individuo = dimensao_individuo
         self.genotipo = None
@@ -33,15 +34,13 @@ class Individuo:
         self.fitness /= 2
         self.fitness = 1/(self.fitness+1)
         
-
     
-    # Imprime os atributos do individuo
+    # Imprime os atributos do individuo. Usada apenas para testes
     def print_individuo(self):
         print(str(self.genotipo)+', '+str(self.fitness))
         
     
 class Populacao:
-    # Initializer / Instance Attributes
     def __init__(self, tamanho_populacao, dimensao_individuo):
         self.tamanho_populacao = tamanho_populacao
         self.dimensao_individuo = dimensao_individuo
@@ -60,15 +59,16 @@ class Populacao:
         for individuo in self.individuos:
             individuo.calcula_fitness()
             
-    # Ordena a lista individuos pela ordem de fitness dos individuos
+    # Ordena a lista individuos pela ordem de fitness dos individuos. Do pior para o melhor
     def ordena_por_fitnesses(self):
         self.individuos.sort(key=operator.attrgetter('fitness'))
         
-    # Imprime os dados da populacao na tela
+    # Imprime os dados da populacao na tela. Usado apenas para testes
     def print_populacao(self):
         for individuo in self.individuos:
             individuo.print_individuo()
     
+    # Retorna a media dos fitnesses da populacao
     def media_fitnesses(self):
         soma_fitnesses = 0
         for individuo in self.individuos:
@@ -76,6 +76,7 @@ class Populacao:
         media_fitnesses = soma_fitnesses/self.tamanho_populacao
         return media_fitnesses
         
+    # Retorna o melhor fitness da populacao
     def melhor_fitness(self):
         return self.individuos[self.tamanho_populacao-1].fitness
         
@@ -85,6 +86,7 @@ class Selecao:
     def __init__(self):
         return
     
+    # Calcula as probabilidades de selecao, usando operador SPF
     @staticmethod
     def calcula_SPF(populacao):
         soma_fitness = 0
@@ -93,7 +95,8 @@ class Selecao:
         for individuo in populacao.individuos:
             individuo.prob_selecao = individuo.fitness/soma_fitness
         
-        
+    # Gera segmento de reta utilizado pela roleta a partir das probabilidades de selecao
+    # Acabou nao sendo utilizada    
     @staticmethod    
     def gera_reta_prob(populacao):
         prob_atual = 0;
@@ -105,6 +108,8 @@ class Selecao:
             i += 1
         populacao.reta_prob = reta_prob
         
+    # Seleciona os pais utilizando o metodo da roleta.
+    # Acabou nao sendo utilizada      
     @staticmethod
     def seleciona_pais_roleta(populacao):
         prob_pai1 = np.random.rand()
@@ -125,6 +130,7 @@ class Selecao:
                 break
         return(pais)
         
+    # Seleciona os pais via um torneio entre um numero passsado como parametro de participantes
     def seleciona_pais_torneio(populacao, participantes):
         if participantes > populacao.tamanho_populacao:
             participantes = populacao.tamanho_populacao
@@ -141,6 +147,7 @@ class Cruzamento:
     def __init__(self):
         return
         
+    # Cruzamento cut and crossfill
     def cut_and_crossfill(pais):
         dimensao_individuo = pais[0].dimensao_individuo
         pos_corte = np.random.randint(low=1, high=dimensao_individuo-1)
@@ -153,7 +160,6 @@ class Cruzamento:
                 filho1 = np.append(filho1, pai2[i])
             if(not pai1[i] in filho2):
                 filho2 = np.append(filho2, pai1[i])
-                
         filhos = []
         filhos.append(Individuo(dimensao_individuo))
         filhos[0].genotipo = filho1
@@ -162,13 +168,14 @@ class Cruzamento:
         for individuo in filhos:
             individuo.calcula_fitness()
         return(filhos)
-                
+
         
 class Mutacao:
     pass
     def __init__(self):
         return
     
+    # Operador de mutacao Swap
     @staticmethod
     def swap(individuo):
         pos_trocas = np.random.randint(low=0, high=individuo.dimensao_individuo, size=2)
@@ -177,13 +184,15 @@ class Mutacao:
         individuo.genotipo[pos_trocas[1]] = aux
 
 
-def GA_n_rainhas():
+# Essa e a funcao que executa o GA-Rainhas
+def GA():
+    # Inicializa hiper-parametros
     tamanho_populacao = 50
     dimensao_individuo = 8
     fitness_ideal = 1
-    numero_geracoes = 100000
+    numero_geracoes = 4975
     prob_mutacao = 0.6
-    prob_cruzamento = 0.9
+    prob_cruzamento = 0.8
     
     # Gera a populacao inicial
     populacao = Populacao(tamanho_populacao, dimensao_individuo)
@@ -191,6 +200,7 @@ def GA_n_rainhas():
     populacao.calcula_fitnesses()
     populacao.ordena_por_fitnesses()
     
+    # Essas listas guardaram as informacoes dos fitness para cada geracao
     melhores_fitnesses = []
     melhores_fitnesses.append(populacao.melhor_fitness()) 
     
@@ -199,46 +209,79 @@ def GA_n_rainhas():
     
     geracao = 0
     geracoes_estagnadas = 0
-    # Condicao de parada e nao encontrar uma solucao valida e o numero de geracoes maximo
-    # ainda nao foi ultrapassada
+    # Condicao de parada e` encontrar uma solucao valida ou atingir o numero de geracoes maximo
     while geracao < numero_geracoes and melhores_fitnesses[geracao] < fitness_ideal:
         geracao += 1
         
-        pais = Selecao.seleciona_pais_torneio(populacao, 2)
+        # Seleciona os pais via torneio
+        pais = Selecao.seleciona_pais_torneio(populacao, 5)
         
         # Cruzamento dos pais escolhidos, sujeito a uma probabilidade
         if (prob_cruzamento > np.random.rand()):
             filhos = Cruzamento.cut_and_crossfill(pais)
         else:
+            # Caso nao haja cruzamento
             # Necessario fazer isso para instanciar novos objetos 
             filhos = [Individuo(dimensao_individuo), Individuo(dimensao_individuo)]
             for indice in range(0,2):
                 filhos[indice].genotipo = pais[indice].genotipo
         
+        # Aplica mutacao nos filhos, sujeita a uma probabilidade
         for individuo in filhos:
             if prob_mutacao > np.random.uniform(0,1):
                 Mutacao.swap(individuo)
             individuo.calcula_fitness()
             
-            
+        # Substitui os filhos gerados pelos piores pais
+        # Esses sao os piores pais pois a populacao esta ordenada
         populacao.individuos[0] = filhos[0]
         populacao.individuos[1] = filhos[1]
         
+        # Reordena populacao
         populacao.ordena_por_fitnesses()
         
+        # Salva valores importantes nas listas
         melhores_fitnesses.append(populacao.melhor_fitness())
         medias_fitnesses.append(populacao.media_fitnesses())
         
+        # Verifica se a melhor solucao esta estagnada
         if melhores_fitnesses[geracao] == melhores_fitnesses[geracao-1]:
             geracoes_estagnadas += 1
         else:
             geracoes_estagnadas = 0
             prob_mutacao = 0.6
+        # Caso a melhor solucao esteja estagnada ha mais de 10 geracoes a probabilidade de mutacao e mudada para 1.0        
         if geracoes_estagnadas >= 10:
             prob_mutacao = 1
-        
-    plt.plot(medias_fitnesses)
-    plt.show()
-    plt.plot(melhores_fitnesses)
-    plt.show()
-    return(geracao+1)
+            
+            
+    populacao.ordena_por_fitnesses()
+   
+    
+#    Plot dos resultados
+#    Traduz os fitness para numero de conflitos entre rainhas     
+#    for i in range(0, len(medias_fitnesses)):
+#        medias_fitnesses[i] = (1-medias_fitnesses[i])/medias_fitnesses[i]
+#        
+#    for i in range(0, len(melhores_fitnesses)):
+#        melhores_fitnesses[i] = (1-melhores_fitnesses[i])/melhores_fitnesses[i]
+    
+#    Plots do resultado
+#    plt.xlabel('Gerações')
+#    plt.ylabel('Conflitos entre rainhas')
+#    plt.title('Média das soluções')
+#    plt.plot(medias_fitnesses)
+#    plt.show()
+#    
+#    plt.title('Melhor solução')
+#    plt.xlabel('Gerações')
+#    plt.ylabel('Conflitos entre rainhas')
+#    plt.plot(melhores_fitnesses)
+#    plt.show()
+    
+#    Retorna a quantidade de geracoes
+#    return(geracao+1)
+            
+#    Retorna a solucao encontrada
+#   return(populacao.individuos[tamanho_populacao-1].genotipo)
+    return
