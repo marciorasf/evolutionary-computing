@@ -76,7 +76,10 @@ class DE:
     @staticmethod
     def seleciona_individuos(populacao):
         individuos = sample(populacao.individuos, 3)
-      
+    
+    def mutacao(individuos, fator_escala):
+        novo_individuo = Individuo()
+        novo
 
 n_variaveis = 2
 tam_pop = 50
@@ -84,5 +87,8 @@ n_geracoes = 100
 lim_inferior = -1
 lim_superior = 1
 
-populacao = Populacao()
-populacao.gera_populacao_aleatoria(n_variaveis, tam_pop, lim_inferior, lim_superior)
+populacao = Populacao().
+populacao .gera_populacao_aleatoria(n_variaveis, tam_pop, lim_inferior, lim_superior)
+
+populacao_nova = Populacao()
+novo_individuo = 
