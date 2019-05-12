@@ -4,10 +4,10 @@ Created on Thu Apr 11 22:43:54 2019
 
 @author: Marcio Souza Filho
 
+!!!!!! A funcao que executa o algoritmo genetico esta no final do codigo com nome GA
 """
 import matplotlib.pyplot as plt
 import numpy as np
-import abc
 import operator
 from random import choice, sample
 
@@ -17,29 +17,45 @@ class Individuo:
         self.variaveis = []  # Variaveis do individuo
         self.n_variaveis = n_variaveis
         self.fitness = None
+        return
 
     def gera_individuo_aleatorio(self, lim_inferior, lim_superior):
         for i in range(self.n_variaveis):
             self.variaveis.append(np.random.uniform(lim_inferior[i], lim_superior[i]))
+        return
+
+    def calcula_fitness(self):
+        self.fitness = 10*self.n_variaveis
+        for i in range(0, self.n_variaveis):
+            self.fitness += (np.power(self.variaveis[i], 2) - 10*np.cos(2 * self.variaveis[i] * np.pi))
+        return
 
     def print(self):
         print(str(self.variaveis)+', '+str(self.fitness))
+        return
 
 
 class Populacao:
     def __init__(self):
         self.individuos = []
         self.reta_prob = []
+        return
 
     def gera_populacao_aleatoria(self, n_variaveis, tam_pop, lim_inferior, lim_superior):
         for _ in range(tam_pop):
             individuo = Individuo(n_variaveis)
             individuo.gera_individuo_aleatorio(lim_inferior, lim_superior)
             self.individuos.append(individuo)
+        return
+
+    def calcula_fitness(self):
+        for individuo in self.individuos:
+            individuo.calcula_fitness()
 
     # Ordena a populacao pelo fitness em ordem crescente
     def ordena(self):
         self.individuos.sort(key=operator.attrgetter('fitness'), reverse=False)
+        return
     
     def menor_fitness(self):
         return self.individuos[0].fitness
@@ -50,6 +66,7 @@ class Populacao:
     def print(self):
         for individuo in self.individuos:
             individuo.print()
+        return
 
 
 class DE:
@@ -77,6 +94,7 @@ class DE:
                 variaveis[i] = limite_inferior[i] - (variaveis[i] - limite_inferior[i])
             elif variaveis[i] > limite_superior[i]:
                 variaveis[i] = limite_superior[i] - (variaveis[i] - limite_superior[i])
+        return
 
     @staticmethod    
     def recombinacao(sol_original, sol_mutante, prob_mutante):
@@ -85,6 +103,7 @@ class DE:
         for i in range(n_variaveis):
             if not(prob_mutante > np.random.rand() or i == delta) :
                 sol_mutante.variaveis[i] = sol_original.variaveis[i]
+        return
 
     @staticmethod
     def selecao_sobreviventes(pop_original, pop_mutante, tam_pop):
@@ -92,114 +111,31 @@ class DE:
             if pop_original.individuos[ind].fitness > pop_mutante.individuos[ind].fitness:
                 pop_original.individuos[ind] = pop_mutante.individuos[ind]
 
-
-class ProblemaStrategyAbstract(object):
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
-    def calcula_fitness(self, ind):
-        """Required Method"""
-
-    @abc.abstractmethod
-    def inicializa_limites(self, limite_inferior, limite_superior, n_variaveis):
-        """Required Method"""
-
-class RastriginStrategy(ProblemaStrategyAbstract):
-    # limites [-5.12, 5.12]
-    # f(x*) 0, x* = 0
-    def calcula_fitness(self, ind):
-        ind.fitness = 10*ind.n_variaveis
-        for i in range(ind.n_variaveis):
-            ind.fitness += (np.power(ind.variaveis[i], 2) - 10*np.cos(2*ind.variaveis[i]*np.pi))
-    
-    def inicializa_limites(self, n_variaveis):
-        lim_inferior = [-5.12]*n_variaveis
-        lim_superior = [5.12]*n_variaveis
-        return(lim_inferior, lim_superior)
-
-class SchwefelStrategy(ProblemaStrategyAbstract):
-    # limites [-500, 500]
-    # f(x*) = 0 x* = 420.9687
-    def calcula_fitness(self, ind):
-        ind.fitness = 418.9829*ind.n_variaveis
-        for i in range(ind.n_variaveis):
-            ind.fitness -= ind.variaveis[i]*np.sin(np.sqrt(abs(ind.variaveis[i])))
-    
-    def inicializa_limites(self, n_variaveis):
-        lim_inferior = [-500]*n_variaveis
-        lim_superior = [500]*n_variaveis
-        return(lim_inferior, lim_superior)
-
-class DeJongSphereStrategy(ProblemaStrategyAbstract):
-    # limites [-5.12, 5.12]
-    # f(x*) 0, x* = 0
-    def calcula_fitness(self, ind):
-        ind.fitness = 0
-        for i in range(ind.n_variaveis):
-            ind.fitness += np.power(ind.variaveis[i], 2)
-
-    def inicializa_limites(self, n_variaveis):
-        lim_inferior = [-5.12]*n_variaveis
-        lim_superior = [5.12]*n_variaveis
-        return(lim_inferior, lim_superior)
-
-class DeJong5Strategy(ProblemaStrategyAbstract):
-    # limites [-65.536, 65.536] e apenas 2 variaveis
-    def calcula_fitness(self, ind):
-        ind.fitness = 0.002
-        a = [-32, -16, 0, 16, 32]
-        for i in range(25):
-            ind.fitness += 1/(i + np.power((ind.variaveis[0] - a[int(i%5)]), 6) + np.power((ind.variaveis[1]-a[int(i/5)]), 6))
-    
-    def inicializa_limites(self, n_variaveis):
-        lim_inferior = [-65.536]*n_variaveis
-        lim_superior = [65.536]*n_variaveis
-        return(lim_inferior, lim_superior)
-
-class RosenbrockStrategy(ProblemaStrategyAbstract):
-    # limites [-5, 5]
-    # f(x*) = 0, x* = 1
-    def calcula_fitness(self, ind):
-        ind.fitness = 0
-        for i in range(ind.n_variaveis-1):
-            ind.fitness += np.power((ind.variaveis[i]-1), 2) + 100*np.power((ind.variaveis[i+1] - ind.variaveis[i]**2), 2)
-
-    def inicializa_limites(self, n_variaveis):
-        lim_inferior = [-5]*n_variaveis
-        lim_superior = [5]*n_variaveis
-        return(lim_inferior, lim_superior)
-
-
-class Problema:
-    def __init__(self, problema_strategy):
-        self.problema_strategy = problema_strategy
-
-    def calcula_fitness(self, individuo):
-        self.problema_strategy.calcula_fitness(individuo)
-
-    def inicializa_limites(self, n_variaveis):
-        return(self.problema_strategy.inicializa_limites(n_variaveis))
-
-
 def run_DE():
-    problema = Problema(RosenbrockStrategy())
-    
-    n_variaveis = 4
+    n_variaveis = 10
     tam_pop = 50
     max_iteracoes = 200*n_variaveis
 
-    lim_inferior, lim_superior = problema.inicializa_limites(4)
+    # Os limites devem ter mesma dimensao que os vetores solucao
+    lim_inferior = [-5.12]*n_variaveis
+    lim_superior = [5.12]*n_variaveis
+
+    if len(lim_inferior) != len(lim_superior):
+        print('lim_inferior e lim_superior tem dimensoes diferentes')
+        return
+    elif len(lim_inferior) != n_variaveis:
+        print('dimensao dos limites e diferente da dimensao das variaveis')
+        return
 
     precisao = 1e-12
 
-    fator_escala = 0.5
+    fator_escala = 0.4
     prob_mutante = 0.5
 
     # Inicializa populacao
     populacao = Populacao()
     populacao.gera_populacao_aleatoria(n_variaveis, tam_pop, lim_inferior, lim_superior)
-    for individuo in populacao.individuos:
-        problema.calcula_fitness(individuo)
+    populacao.calcula_fitness()
 
     populacao_mutante = Populacao()
     melhor_fitness = populacao.individuos[0].fitness
@@ -211,7 +147,7 @@ def run_DE():
             mutante = DE.mutacao(selecionados, fator_escala)
             DE.reflexao_limites(mutante,lim_inferior,lim_superior)
             DE.recombinacao(populacao.individuos[ind], mutante,  prob_mutante)
-            problema.calcula_fitness(mutante)
+            mutante.calcula_fitness()
             populacao_mutante.individuos.append(mutante)
         DE.selecao_sobreviventes(populacao, populacao_mutante, tam_pop)
         populacao_mutante.individuos.clear()
@@ -220,8 +156,7 @@ def run_DE():
         if melhor_fitness_iteracao < melhor_fitness:
             melhor_fitness = melhor_fitness_iteracao
 
-    populacao.individuos[0].print()
-    print('Rastrigin com n = ' + str(n_variaveis) + ': melhor solucao = ' + str(melhor_fitness) + 'em ' + str(iteracao) +' iteracoes')
+    print('melhor solucao = ' + str(melhor_fitness) + 'em ' + str(iteracao) +' iteracoes')
     return
 
 run_DE()
