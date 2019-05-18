@@ -34,8 +34,7 @@ class RastriginStrategy(ProblemaStrategyAbstract):
     def calcula_fitness(self, ind):
         ind.fitness = 10*ind.n_variaveis
         for i in range(ind.n_variaveis):
-            ind.fitness += (np.power(ind.variaveis[i], 2) -
-                            10*np.cos(2*ind.variaveis[i]*np.pi))
+            ind.fitness += (np.power(ind.variaveis[i], 2) - 10*np.cos(2*ind.variaveis[i]*np.pi))
 
     def inicializa_limites(self, n_variaveis):
         lim_inferior = [-5.12]*n_variaveis
@@ -52,8 +51,7 @@ class SchwefelStrategy(ProblemaStrategyAbstract):
     def calcula_fitness(self, ind):
         ind.fitness = 418.9829*ind.n_variaveis
         for i in range(ind.n_variaveis):
-            ind.fitness -= ind.variaveis[i] * \
-                np.sin(np.sqrt(abs(ind.variaveis[i])))
+            ind.fitness -= ind.variaveis[i] * np.sin(np.sqrt(abs(ind.variaveis[i])))
 
     def inicializa_limites(self, n_variaveis):
         lim_inferior = [-500]*n_variaveis
@@ -87,9 +85,7 @@ class DeJong5Strategy(ProblemaStrategyAbstract):
         ind.fitness = 0.002
         a = [-32, -16, 0, 16, 32]
         for i in range(25):
-            ind.fitness += 1 / \
-                (i + np.power((ind.variaveis[0] - a[int(i % 5)]),
-                              6) + np.power((ind.variaveis[1]-a[int(i/5)]), 6))
+            ind.fitness += 1 / (i + np.power((ind.variaveis[0] - a[int(i % 5)]),6) + np.power((ind.variaveis[1]-a[int(i/5)]), 6))
 
     def inicializa_limites(self, n_variaveis):
         lim_inferior = [-65.536]*n_variaveis
@@ -106,8 +102,7 @@ class RosenbrockStrategy(ProblemaStrategyAbstract):
     def calcula_fitness(self, ind):
         ind.fitness = 0
         for i in range(ind.n_variaveis-1):
-            ind.fitness += np.power((ind.variaveis[i]-1), 2) + 100*np.power(
-                (ind.variaveis[i+1] - ind.variaveis[i]**2), 2)
+            ind.fitness += np.power((ind.variaveis[i]-1), 2) + 100*np.power((ind.variaveis[i+1] - ind.variaveis[i]**2), 2)
 
     def inicializa_limites(self, n_variaveis):
         lim_inferior = [-5]*n_variaveis
@@ -171,8 +166,7 @@ class DE:
         novo_individuo = Individuo(n_variaveis)
         n_var = len(individuos[0].variaveis)
         for i in range(n_var):
-            x = individuos[0].variaveis[i] + fator_escala * \
-                (individuos[1].variaveis[i]-individuos[2].variaveis[i])
+            x = individuos[0].variaveis[i] + fator_escala * (individuos[1].variaveis[i]-individuos[2].variaveis[i])
             novo_individuo.variaveis.append(x)
         return novo_individuo
 
@@ -231,7 +225,8 @@ def run_DE():
 
     # Inicializa populacao
     populacao = Populacao()
-    populacao.gera_populacao_aleatoria(n_variaveis, tam_pop, lim_inferior, lim_superior)
+    populacao.gera_populacao_aleatoria(
+        n_variaveis, tam_pop, lim_inferior, lim_superior)
     for individuo in populacao.individuos:
         problema.calcula_fitness(individuo)
 
