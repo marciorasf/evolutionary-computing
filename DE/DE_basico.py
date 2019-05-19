@@ -123,6 +123,18 @@ class SelecionaIndividuosAleatorioStrategy(SelecionaIndividuosStrategyAbstract):
         individuos = sample(populacao.individuos, 3)
         return individuos
 
+class SelecionaIndividuosMelhorStrategy(SelecionaIndividuosStrategyAbstract):
+    def seleciona_individuos(self, populacao):
+        individuos = sample(populacao.individuos, 3)
+        individuos[0] = populacao.melhor_solucao
+        return individuos
+
+class SelecionaIndividuosMediaStrategy(SelecionaIndividuosStrategyAbstract):
+    def seleciona_individuos(self, populacao):
+        individuos = sample(populacao.individuos, 3)
+        individuos[0] = populacao.solucao_media
+        return individuos
+
 class SelecionaSobreviventesStrategyAbstract(object):
     __metaclass__ = abc.ABCMeta
 
@@ -135,6 +147,24 @@ class SelecionaSobreviventesDeterministicoStrategy(SelecionaSobreviventesStrateg
         for ind in range(tam_pop):
             if pop_original.individuos[ind].fitness > pop_mutante.individuos[ind].fitness:
                 pop_original.individuos[ind] = pop_mutante.individuos[ind]
+
+class MutacaoStrategyAbstract(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def mutacao(self, individuos, fator_escala):
+        """Required Method"""
+
+class MutacaoSimplesStrategy(MutacaoStrategyAbstract):    
+    def mutacao(self, individuos, fator_escala):
+        n_variaveis = len(individuos[0].variaveis)
+        novo_individuo = Individuo(n_variaveis)
+        n_var = len(individuos[0].variaveis)
+        for i in range(n_var):
+            x = individuos[0].variaveis[i] + fator_escala * \
+                (individuos[1].variaveis[i]-individuos[2].variaveis[i])
+            novo_individuo.variaveis.append(x)
+        return novo_individuo
 
 class Individuo:
     def __init__(self, n_variaveis):
@@ -188,22 +218,16 @@ class Populacao:
             individuo.print()
 
 class DE:
-    def __init__(self, seleciona_individuos_strategy, seleciona_sobreviventes_strategy):
+    def __init__(self, seleciona_individuos_strategy, seleciona_sobreviventes_strategy, mutacao_strategy):
         self.seleciona_individuos_strategy = seleciona_individuos_strategy
         self.seleciona_sobreviventes_strategy = seleciona_sobreviventes_strategy
+        self.mutacao_strategy = mutacao_strategy
 
     def seleciona_individuos(self, populacao):
         return self.seleciona_individuos_strategy.seleciona_individuos(populacao)
 
     def mutacao(self, individuos, fator_escala):
-        n_variaveis = len(individuos[0].variaveis)
-        novo_individuo = Individuo(n_variaveis)
-        n_var = len(individuos[0].variaveis)
-        for i in range(n_var):
-            x = individuos[0].variaveis[i] + fator_escala * \
-                (individuos[1].variaveis[i]-individuos[2].variaveis[i])
-            novo_individuo.variaveis.append(x)
-        return novo_individuo
+        return self.mutacao_strategy.mutacao(individuos, fator_escala)
 
     # Confere se as solucoes mutantes estao saindo dos limites, caso estejam reflete
     def reflexao_limites(self, mutante, limite_inferior, limite_superior):
@@ -239,8 +263,8 @@ class Problema:
 
 def run_DE():
     problema = Problema(RastriginStrategy())
-    de = DE(SelecionaIndividuosAleatorioStrategy(), SelecionaSobreviventesDeterministicoStrategy())
-    n_variaveis = 4
+    de = DE(SelecionaIndividuosAleatorioStrategy(), SelecionaSobreviventesDeterministicoStrategy(), MutacaoSimplesStrategy())
+    n_variaveis = 10
     tam_pop = 50
     max_iteracoes = 200*n_variaveis
 
@@ -257,6 +281,9 @@ def run_DE():
     for individuo in populacao.individuos:
         problema.calcula_fitness(individuo)
     populacao.ordena()
+    problema.set_melhor_solucao(populacao)
+    populacao.set_solucao_media()
+    problema.calcula_fitness(populacao.solucao_media)
 
     populacao_mutante = Populacao()
     melhor_fitness = populacao.individuos[0].fitness
