@@ -11,7 +11,6 @@ import abc
 import operator
 from random import choice, sample
 
-
 class ProblemaStrategyAbstract(object):
     __metaclass__ = abc.ABCMeta
 
@@ -26,7 +25,6 @@ class ProblemaStrategyAbstract(object):
     @abc.abstractmethod
     def melhor_solucao(self, populacao):
         """Required Method"""
-
 
 class RastriginStrategy(ProblemaStrategyAbstract):
     # limites [-5.12, 5.12]
@@ -45,7 +43,6 @@ class RastriginStrategy(ProblemaStrategyAbstract):
     def melhor_solucao(self, populacao):
         return populacao.solucao_menor_fitness()
 
-
 class SchwefelStrategy(ProblemaStrategyAbstract):
     # limites [-500, 500]
     # f(x*) = 0 x* = 420.9687
@@ -63,7 +60,6 @@ class SchwefelStrategy(ProblemaStrategyAbstract):
     def melhor_solucao(self, populacao):
         return populacao.solucao_menor_fitness()
 
-
 class DeJongSphereStrategy(ProblemaStrategyAbstract):
     # limites [-5.12, 5.12]
     # f(x*) 0, x* = 0
@@ -79,7 +75,6 @@ class DeJongSphereStrategy(ProblemaStrategyAbstract):
 
     def melhor_solucao(self, populacao):
         return populacao.solucao_menor_fitness()
-
 
 class DeJong5Strategy(ProblemaStrategyAbstract):
     # limites [-65.536, 65.536] e apenas 2 variaveis
@@ -99,7 +94,6 @@ class DeJong5Strategy(ProblemaStrategyAbstract):
     def melhor_solucao(self, populacao):
         return populacao.solucao_menor_fitness()
 
-
 class RosenbrockStrategy(ProblemaStrategyAbstract):
     # limites [-5, 5]
     # f(x*) = 0, x* = 1
@@ -117,6 +111,30 @@ class RosenbrockStrategy(ProblemaStrategyAbstract):
     def melhor_solucao(self, populacao):
         return populacao.solucao_menor_fitness()
 
+class SelecionaIndividuosStrategyAbstract(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def seleciona_individuos(self, populacao):
+        """Required Method"""
+
+class SelecionaIndividuosAleatorioStrategy(SelecionaIndividuosStrategyAbstract):
+    def seleciona_individuos(self, populacao):
+        individuos = sample(populacao.individuos, 3)
+        return individuos
+
+class SelecionaSobreviventesStrategyAbstract(object):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def selecao_sobreviventes(self, pop_original, pop_mutante, tam_pop):
+        """Required Method"""
+
+class SelecionaSobreviventesDeterministicoStrategy(SelecionaSobreviventesStrategyAbstract):    
+    def selecao_sobreviventes(self, pop_original, pop_mutante, tam_pop):
+        for ind in range(tam_pop):
+            if pop_original.individuos[ind].fitness > pop_mutante.individuos[ind].fitness:
+                pop_original.individuos[ind] = pop_mutante.individuos[ind]
 
 class Individuo:
     def __init__(self, n_variaveis):
@@ -131,7 +149,6 @@ class Individuo:
 
     def print(self):
         print(str(self.variaveis)+', '+str(self.fitness))
-
 
 class Populacao:
     def __init__(self):
@@ -158,12 +175,13 @@ class Populacao:
         for individuo in self.individuos:
             individuo.print()
 
-
 class DE:
-    @staticmethod
-    def seleciona_individuos(populacao):
-        individuos = sample(populacao.individuos, 3)
-        return individuos
+    def __init__(self, seleciona_individuos_strategy, seleciona_sobreviventes_strategy):
+        self.seleciona_individuos_strategy = seleciona_individuos_strategy
+        self.seleciona_sobreviventes_strategy = seleciona_sobreviventes_strategy
+
+    def seleciona_individuos(self, populacao):
+        return self.seleciona_individuos_strategy.seleciona_individuos(populacao)
 
     @staticmethod
     def mutacao(individuos, fator_escala):
@@ -194,12 +212,8 @@ class DE:
             if not(prob_mutante > np.random.rand() or i == delta):
                 sol_mutante.variaveis[i] = sol_original.variaveis[i]
 
-    @staticmethod
-    def selecao_sobreviventes(pop_original, pop_mutante, tam_pop):
-        for ind in range(tam_pop):
-            if pop_original.individuos[ind].fitness > pop_mutante.individuos[ind].fitness:
-                pop_original.individuos[ind] = pop_mutante.individuos[ind]
-
+    def selecao_sobreviventes(self, pop_original, pop_mutante, tam_pop):
+        self.seleciona_sobreviventes_strategy.selecao_sobreviventes(pop_original, pop_mutante, tam_pop)
 
 class Problema:
     def __init__(self, problema_strategy):
@@ -214,11 +228,10 @@ class Problema:
     def melhor_solucao(self, populacao):
         return(self.problema_strategy.melhor_solucao(populacao))
 
-
 def run_DE():
-    problema = Problema(RastriginStrategy())
-
-    n_variaveis = 4
+    problema = Problema(RosenbrockStrategy())
+    de = DE(SelecionaIndividuosAleatorioStrategy(), SelecionaSobreviventesDeterministicoStrategy())
+    n_variaveis = 2
     tam_pop = 50
     max_iteracoes = 200*n_variaveis
 
@@ -241,13 +254,13 @@ def run_DE():
     while (iteracao < max_iteracoes) and (melhor_fitness > precisao):
         iteracao += 1
         for ind in range(tam_pop):
-            selecionados = DE.seleciona_individuos(populacao)
-            mutante = DE.mutacao(selecionados, fator_escala)
-            DE.reflexao_limites(mutante, lim_inferior, lim_superior)
-            DE.recombinacao(populacao.individuos[ind], mutante,  prob_mutante)
+            selecionados = de.seleciona_individuos(populacao)
+            mutante = de.mutacao(selecionados, fator_escala)
+            de.reflexao_limites(mutante, lim_inferior, lim_superior)
+            de.recombinacao(populacao.individuos[ind], mutante,  prob_mutante)
             problema.calcula_fitness(mutante)
             populacao_mutante.individuos.append(mutante)
-        DE.selecao_sobreviventes(populacao, populacao_mutante, tam_pop)
+        de.selecao_sobreviventes(populacao, populacao_mutante, tam_pop)
         populacao_mutante.individuos.clear()
         populacao.ordena()
         melhor_solucao_iteracao = problema.melhor_solucao(populacao)
