@@ -23,7 +23,7 @@ class ProblemaStrategyAbstract(object):
         """Required Method"""
 
     @abc.abstractmethod
-    def melhor_solucao(self, populacao):
+    def set_melhor_solucao(self, populacao):
         """Required Method"""
 
 class RastriginStrategy(ProblemaStrategyAbstract):
@@ -40,8 +40,8 @@ class RastriginStrategy(ProblemaStrategyAbstract):
         lim_superior = [5.12]*n_variaveis
         return(lim_inferior, lim_superior)
 
-    def melhor_solucao(self, populacao):
-        return populacao.solucao_menor_fitness()
+    def set_melhor_solucao(self, populacao):
+        populacao.melhor_solucao = populacao.solucao_menor_fitness()
 
 class SchwefelStrategy(ProblemaStrategyAbstract):
     # limites [-500, 500]
@@ -57,8 +57,8 @@ class SchwefelStrategy(ProblemaStrategyAbstract):
         lim_superior = [500]*n_variaveis
         return(lim_inferior, lim_superior)
 
-    def melhor_solucao(self, populacao):
-        return populacao.solucao_menor_fitness()
+    def set_melhor_solucao(self, populacao):
+        populacao.melhor_solucao = populacao.solucao_menor_fitness()
 
 class DeJongSphereStrategy(ProblemaStrategyAbstract):
     # limites [-5.12, 5.12]
@@ -73,8 +73,8 @@ class DeJongSphereStrategy(ProblemaStrategyAbstract):
         lim_superior = [5.12]*n_variaveis
         return(lim_inferior, lim_superior)
 
-    def melhor_solucao(self, populacao):
-        return populacao.solucao_menor_fitness()
+    def set_melhor_solucao(self, populacao):
+        populacao.melhor_solucao = populacao.solucao_menor_fitness()
 
 class DeJong5Strategy(ProblemaStrategyAbstract):
     # limites [-65.536, 65.536] e apenas 2 variaveis
@@ -91,8 +91,8 @@ class DeJong5Strategy(ProblemaStrategyAbstract):
         lim_superior = [65.536]*n_variaveis
         return(lim_inferior, lim_superior)
 
-    def melhor_solucao(self, populacao):
-        return populacao.solucao_menor_fitness()
+    def set_melhor_solucao(self, populacao):
+        populacao.melhor_solucao = populacao.solucao_menor_fitness()
 
 class RosenbrockStrategy(ProblemaStrategyAbstract):
     # limites [-5, 5]
@@ -108,8 +108,8 @@ class RosenbrockStrategy(ProblemaStrategyAbstract):
         lim_superior = [5]*n_variaveis
         return(lim_inferior, lim_superior)
 
-    def melhor_solucao(self, populacao):
-        return populacao.solucao_menor_fitness()
+    def set_melhor_solucao(self, populacao):
+        populacao.melhor_solucao = populacao.solucao_menor_fitness()
 
 class SelecionaIndividuosStrategyAbstract(object):
     __metaclass__ = abc.ABCMeta
@@ -144,8 +144,7 @@ class Individuo:
 
     def gera_individuo_aleatorio(self, lim_inferior, lim_superior):
         for i in range(self.n_variaveis):
-            self.variaveis.append(np.random.uniform(
-                lim_inferior[i], lim_superior[i]))
+            self.variaveis.append(np.random.uniform(lim_inferior[i], lim_superior[i]))
 
     def print(self):
         print(str(self.variaveis)+', '+str(self.fitness))
@@ -154,6 +153,8 @@ class Populacao:
     def __init__(self):
         self.individuos = []
         self.reta_prob = []
+        self.melhor_solucao = None
+        self.solucao_media = None
 
     def gera_populacao_aleatoria(self, n_variaveis, tam_pop, lim_inferior, lim_superior):
         for _ in range(tam_pop):
@@ -171,6 +172,17 @@ class Populacao:
     def solucao_maior_fitness(self):
         return self.individuos[-1]
 
+    def set_solucao_media(self):
+        n_variaveis = len(self.individuos[0].variaveis)
+        n_individuos = len(self.individuos)
+        ind_med = Individuo(n_variaveis)
+        ind_med.variaveis = [0]*n_variaveis
+        for ind in self.individuos:
+            for var in range(n_variaveis):
+                ind_med.variaveis[var] += ind.variaveis[var]
+        ind_med.variaveis[:] = [var / n_individuos for var in ind_med.variaveis]
+        self.solucao_media = ind_med
+
     def print(self):
         for individuo in self.individuos:
             individuo.print()
@@ -183,8 +195,7 @@ class DE:
     def seleciona_individuos(self, populacao):
         return self.seleciona_individuos_strategy.seleciona_individuos(populacao)
 
-    @staticmethod
-    def mutacao(individuos, fator_escala):
+    def mutacao(self, individuos, fator_escala):
         n_variaveis = len(individuos[0].variaveis)
         novo_individuo = Individuo(n_variaveis)
         n_var = len(individuos[0].variaveis)
@@ -195,8 +206,7 @@ class DE:
         return novo_individuo
 
     # Confere se as solucoes mutantes estao saindo dos limites, caso estejam reflete
-    @staticmethod
-    def reflexao_limites(mutante, limite_inferior, limite_superior):
+    def reflexao_limites(self, mutante, limite_inferior, limite_superior):
         variaveis = mutante.variaveis
         for i in range(mutante.n_variaveis):
             if variaveis[i] < limite_inferior[i]:
@@ -204,8 +214,7 @@ class DE:
             elif variaveis[i] > limite_superior[i]:
                 variaveis[i] = limite_superior[i] - (variaveis[i] - limite_superior[i])
 
-    @staticmethod
-    def recombinacao(sol_original, sol_mutante, prob_mutante):
+    def recombinacao(self, sol_original, sol_mutante, prob_mutante):
         n_variaveis = sol_original.n_variaveis
         delta = np.random.randint(low=0, high=n_variaveis)
         for i in range(n_variaveis):
@@ -225,13 +234,13 @@ class Problema:
     def inicializa_limites(self, n_variaveis):
         return(self.problema_strategy.inicializa_limites(n_variaveis))
 
-    def melhor_solucao(self, populacao):
-        return(self.problema_strategy.melhor_solucao(populacao))
+    def set_melhor_solucao(self, populacao):
+        return(self.problema_strategy.set_melhor_solucao(populacao))
 
 def run_DE():
-    problema = Problema(RosenbrockStrategy())
+    problema = Problema(RastriginStrategy())
     de = DE(SelecionaIndividuosAleatorioStrategy(), SelecionaSobreviventesDeterministicoStrategy())
-    n_variaveis = 2
+    n_variaveis = 4
     tam_pop = 50
     max_iteracoes = 200*n_variaveis
 
@@ -247,6 +256,7 @@ def run_DE():
     populacao.gera_populacao_aleatoria(n_variaveis, tam_pop, lim_inferior, lim_superior)
     for individuo in populacao.individuos:
         problema.calcula_fitness(individuo)
+    populacao.ordena()
 
     populacao_mutante = Populacao()
     melhor_fitness = populacao.individuos[0].fitness
@@ -263,7 +273,10 @@ def run_DE():
         de.selecao_sobreviventes(populacao, populacao_mutante, tam_pop)
         populacao_mutante.individuos.clear()
         populacao.ordena()
-        melhor_solucao_iteracao = problema.melhor_solucao(populacao)
+        problema.set_melhor_solucao(populacao)
+        populacao.set_solucao_media()
+        problema.calcula_fitness(populacao.solucao_media)
+        melhor_solucao_iteracao = populacao.melhor_solucao
         if melhor_solucao_iteracao.fitness < melhor_fitness:
             melhor_fitness = melhor_solucao_iteracao.fitness
 
@@ -271,6 +284,5 @@ def run_DE():
     print('Rastrigin com n = ' + str(n_variaveis) + ': melhor solucao = ' +
           str(melhor_fitness) + 'em ' + str(iteracao) + ' iteracoes')
     return
-
 
 run_DE()
