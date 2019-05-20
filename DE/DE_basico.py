@@ -161,8 +161,7 @@ class MutacaoSimplesStrategy(MutacaoStrategyAbstract):
         novo_individuo = Individuo(n_variaveis)
         n_var = len(individuos[0].variaveis)
         for i in range(n_var):
-            x = individuos[0].variaveis[i] + fator_escala * \
-                (individuos[1].variaveis[i]-individuos[2].variaveis[i])
+            x = individuos[0].variaveis[i] + fator_escala * (individuos[1].variaveis[i]-individuos[2].variaveis[i])
             novo_individuo.variaveis.append(x)
         return novo_individuo
 
