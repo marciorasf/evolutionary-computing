@@ -5,6 +5,9 @@ Created on Thu Apr 11 22:43:54 2019
 @author: Marcio Souza Filho
 
 """
+""" 
+TODO precisa implementar n-best e n-medio
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import abc
@@ -263,7 +266,7 @@ class Problema:
 def run_DE():
     problema = Problema(RastriginStrategy())
     de = DE(SelecionaIndividuosAleatorioStrategy(), SelecionaSobreviventesDeterministicoStrategy(), MutacaoSimplesStrategy())
-    n_variaveis = 10
+    n_variaveis = 12
     tam_pop = 50
     max_iteracoes = 200*n_variaveis
 
@@ -307,8 +310,7 @@ def run_DE():
             melhor_fitness = melhor_solucao_iteracao.fitness
 
     populacao.individuos[0].print()
-    print('Rastrigin com n = ' + str(n_variaveis) + ': melhor solucao = ' +
-          str(melhor_fitness) + 'em ' + str(iteracao) + ' iteracoes')
+    print('Rastrigin com n = ' + str(n_variaveis) + ': melhor solucao = ' +str(melhor_fitness) + 'em ' + str(iteracao) + ' iteracoes')
     return
 
 run_DE()
