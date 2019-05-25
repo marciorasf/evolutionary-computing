@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from matplotlib.testing.decorators import image_comparison
 import matplotlib.pyplot as plt
@@ -154,15 +155,13 @@ def test_tight_layout8():
 
 @image_comparison(baseline_images=['tight_layout9'])
 def test_tight_layout9():
-    # Test tight_layout for non-visible suplots
+    # Test tight_layout for non-visible subplots
     # GH 8244
     f, axarr = plt.subplots(2, 2)
     axarr[1][1].set_visible(False)
     plt.tight_layout()
 
 
-# The following test is misleading when the text is removed.
-@image_comparison(baseline_images=['outward_ticks'], remove_text=False)
 def test_outward_ticks():
     'Test automatic use of tight_layout'
     fig = plt.figure()
@@ -173,8 +172,6 @@ def test_outward_ticks():
         tickdir='out', length=32, width=3, tick1On=True, which='minor')
     ax.yaxis.set_tick_params(
         tickdir='out', length=32, width=3, tick1On=True, which='minor')
-    # The following minor ticks are not labelled, and they
-    # are drawn over the major ticks and labels--ugly!
     ax.xaxis.set_ticks([0], minor=True)
     ax.yaxis.set_ticks([0], minor=True)
     ax = fig.add_subplot(222)
@@ -187,6 +184,15 @@ def test_outward_ticks():
     ax.xaxis.set_tick_params(tickdir='out', length=32, width=3)
     ax.yaxis.set_tick_params(tickdir='out', length=32, width=3)
     plt.tight_layout()
+    # These values were obtained after visual checking that they correspond
+    # to a tight layouting that did take the ticks into account.
+    ans = [[[0.091, 0.607], [0.433, 0.933]],
+           [[0.579, 0.607], [0.922, 0.933]],
+           [[0.091, 0.140], [0.433, 0.466]],
+           [[0.579, 0.140], [0.922, 0.466]]]
+    for nn, ax in enumerate(fig.axes):
+        assert_array_equal(np.round(ax.get_position().get_points(), 3),
+                           ans[nn])
 
 
 def add_offsetboxes(ax, size=10, margin=.1, color='black'):
@@ -319,7 +325,7 @@ def test_badsubplotgrid():
 
 
 def test_collapsed():
-    # test that if a call to tight_layout will collapes the axes that
+    # test that if a call to tight_layout will collapses the axes that
     # it does not get applied:
     fig, ax = plt.subplots(tight_layout=True)
     ax.set_xlim([0, 1])
@@ -332,3 +338,5 @@ def test_collapsed():
         p2 = ax.get_position()
         assert p1.width == p2.width
         assert len(w) == 1
+    # test that passing a rect doesn't crash...
+    plt.tight_layout(rect=[0, 0, 0.8, 0.8])

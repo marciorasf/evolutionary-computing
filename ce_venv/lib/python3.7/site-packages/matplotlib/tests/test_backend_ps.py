@@ -3,11 +3,11 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import warnings
 
-import numpy as np
 import pytest
 
-import matplotlib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import cbook, patheffects
 from matplotlib.testing.decorators import image_comparison
@@ -15,12 +15,14 @@ from matplotlib.testing.determinism import (_determinism_source_date_epoch,
                                             _determinism_check)
 
 
-needs_ghostscript = pytest.mark.skipif(
-    matplotlib.checkdep_ghostscript()[0] is None,
-    reason="This test needs a ghostscript installation")
-needs_usetex = pytest.mark.skipif(
-    not matplotlib.checkdep_usetex(True),
-    reason="This test needs a TeX installation")
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    needs_ghostscript = pytest.mark.skipif(
+        "eps" not in mpl.testing.compare.converter,
+        reason="This test needs a ghostscript installation")
+    needs_usetex = pytest.mark.skipif(
+        not mpl.checkdep_usetex(True),
+        reason="This test needs a TeX installation")
 
 
 # This tests tends to hit a TeX cache lock on AppVeyor.
@@ -44,7 +46,7 @@ needs_usetex = pytest.mark.skipif(
     'eps with usetex'
 ])
 def test_savefig_to_stringio(format, use_log, rcParams):
-    matplotlib.rcParams.update(rcParams)
+    mpl.rcParams.update(rcParams)
 
     fig, ax = plt.subplots()
 
@@ -69,8 +71,8 @@ def test_savefig_to_stringio(format, use_log, rcParams):
 
 
 def test_patheffects():
-    with matplotlib.rc_context():
-        matplotlib.rcParams['path.effects'] = [
+    with mpl.rc_context():
+        mpl.rcParams['path.effects'] = [
             patheffects.withStroke(linewidth=4, foreground='w')]
         fig, ax = plt.subplots()
         ax.plot([1, 2, 3])
@@ -133,7 +135,7 @@ def test_failing_latex(tmpdir):
     """Test failing latex subprocess call"""
     path = str(tmpdir.join("tmpoutput.ps"))
 
-    matplotlib.rcParams['text.usetex'] = True
+    mpl.rcParams['text.usetex'] = True
 
     # This fails with "Double subscript"
     plt.xlabel("$22_2_2$")

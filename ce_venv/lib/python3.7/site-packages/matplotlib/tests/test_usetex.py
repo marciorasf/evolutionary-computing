@@ -1,12 +1,21 @@
+import warnings
+
 import pytest
 
 import matplotlib
 from matplotlib.testing.decorators import image_comparison
 import matplotlib.pyplot as plt
+from matplotlib.ticker import EngFormatter
 
 
-@pytest.mark.skipif(not matplotlib.checkdep_usetex(True),
-                    reason='Missing TeX or Ghostscript or dvipng')
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    needs_usetex = pytest.mark.skipif(
+        not matplotlib.checkdep_usetex(True),
+        reason='Missing TeX of Ghostscript or dvipng')
+
+
+@needs_usetex
 @image_comparison(baseline_images=['test_usetex'],
                   extensions=['pdf', 'png'],
                   tol=0.3)

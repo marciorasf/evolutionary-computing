@@ -6,7 +6,6 @@ from matplotlib import pyplot as plt
 from numpy.testing import assert_array_almost_equal
 from matplotlib.colors import LogNorm
 import pytest
-import warnings
 
 
 def test_contour_shape_1d_valid():
@@ -207,7 +206,7 @@ def test_given_colors_levels_and_extends():
     colors = ['red', 'yellow', 'pink', 'blue', 'black']
     levels = [2, 4, 8, 10]
 
-    for i, ax in enumerate(axes.flatten()):
+    for i, ax in enumerate(axes.flat):
         filled = i % 2 == 0.
         extend = ['neither', 'min', 'max', 'both'][i // 2]
 
@@ -292,7 +291,7 @@ def test_corner_mask():
     np.random.seed([1])
     x, y = np.meshgrid(np.linspace(0, 2.0, n), np.linspace(0, 2.0, n))
     z = np.cos(7*x)*np.sin(8*y) + noise_amp*np.random.rand(n, n)
-    mask = np.where(np.random.rand(n, n) >= mask_level, True, False)
+    mask = np.random.rand(n, n) >= mask_level
     z = np.ma.array(z, mask=mask)
 
     for corner_mask in [False, True]:
@@ -363,7 +362,7 @@ def test_circular_contour_warning():
     # Check that almost circular contours don't throw a warning
     with pytest.warns(None) as record:
         x, y = np.meshgrid(np.linspace(-2, 2, 4), np.linspace(-2, 2, 4))
-        r = np.sqrt(x ** 2 + y ** 2)
+        r = np.hypot(x, y)
 
         plt.figure()
         cs = plt.contour(x, y, r)
@@ -405,7 +404,10 @@ def test_contourf_log_extension():
 
 
 @image_comparison(baseline_images=['contour_addlines'],
-                  extensions=['png'], remove_text=True, style='mpl20')
+                  extensions=['png'], remove_text=True, style='mpl20',
+                  tol=0.03)
+# tolerance is because image changed minutely when tick finding on
+# colorbars was cleaned up...
 def test_contour_addlines():
     fig, ax = plt.subplots()
     np.random.seed(19680812)

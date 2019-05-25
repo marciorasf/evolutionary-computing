@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "CE_2019_1/bin/python",
+    "python.pythonPath": "ce_venv/bin/python",
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true
 }

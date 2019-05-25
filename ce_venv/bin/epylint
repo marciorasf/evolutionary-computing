@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' "/home/marciorasf/Área de Trabalho/python/ComputacaoEvolucionaria-2019.1/CE_2019_1/bin/python" "$0" "$@"
+'''exec' "/home/marciorasf/Área de Trabalho/python/ComputacaoEvolucionaria-2019.1/ce_venv/bin/python" "$0" "$@"
 ' '''
 # -*- coding: utf-8 -*-
 import re
