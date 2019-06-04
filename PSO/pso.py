@@ -4,101 +4,122 @@ import abc
 import operator
 from random import choice, sample
 
-class ProblemaStrategyAbstract(object):
+class ProblemStrategyAbstract(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def calcula_fitness(self, particula):
+    def calculate_fitness(self, particle):
         """Required Method"""
 
     @abc.abstractmethod
-    def inicializa_limites(self, limite_inferior, limite_superior, dimensao):
+    def initialize_limits(self, inf_limit, sup_limit, dimension):
         """Required Method"""
 
     @abc.abstractmethod
-    def set_melhor_solucao(self, populacao):
+    def set_best_solution(self, swarm):
         """Required Method"""
 
-class RastriginStrategy(ProblemaStrategyAbstract):
+class RastriginStrategy(ProblemStrategyAbstract):
     # limites [-5.12, 5.12]
     # f(x*) 0, x* = 0
-    def calcula_fitness(self, particula):
-        particula.fitness = 10*particula.dimensao
-        for i in range(particula.n_variaveis):
-            particula.fitness += (np.power(particula.variaveis[i], 2) - 10*np.cos(2*particula.variaveis[i]*np.pi))
+    def calculate_fitness(self, particle):
+        particle.fitness = 10*particle.dimension
+        for i in range(particle.dimension):
+            particle.fitness += (np.power(particle.variaveis[i], 2) - 10*np.cos(2*particle.variaveis[i]*np.pi))
 
-    def inicializa_limites(self, dimensao):
-        lim_inferior = [-5.12]*n_variaveis
-        lim_superior = [5.12]*n_variaveis
-        return(lim_inferior, lim_superior)
+    def initialize_limits(self, dimension):
+        inf_limit = [-5.12]*dimension
+        sup_limit = [5.12]*dimension
+        return(inf_limit, sup_limit)
 
-    def set_melhor_solucao(self, populacao):
-        populacao.melhor_solucao = populacao.solucao_menor_fitness()
-
-
-class Problema:
-    def __init__(self, problema_strategy):
-        self.problema_strategy = problema_strategy
-
-    def calcula_fitness(self, individuo):
-        self.problema_strategy.calcula_fitness(individuo)
-
-    def inicializa_limites(self, n_variaveis):
-        return(self.problema_strategy.inicializa_limites(n_variaveis))
-
-    def set_melhor_solucao(self, populacao):
-        return(self.problema_strategy.set_melhor_solucao(populacao))
+    def set_best_solution(self, swarm):
+        swarm.melhor_solucao = swarm.solucao_menor_fitness()
 
 
-class Particula:
-    def __init__(self, dimensao):
-        self.dimensao = dimensao
-        self.posicao = []
+class Problem:
+    def __init__(self, problem_strategy):
+        self.problem_strategy = problem_strategy
+
+    def calculate_fitness(self, particle):
+        self.problem_strategy.calculate_fitness(particle)
+
+    def initialize_limits(self, dimension):
+        return(self.problem_strategy.initialize_limits(dimension))
+
+    def set_best_solution(self, swarm):
+        return(self.problem_strategy.set_best_solution(swarm))
+
+
+class Particle:
+    def __init__(self, dimension):
+        self.dimension = dimension
+        self.position = []
+        self.velocity = []
         self.fitness = None
-        self.velocidade = []
-        self.melhor_posicao = None
-        self.melhor_fitness = None
+        self.best_position = None
+        self.best_fitness = None
         return
 
-    def gera_particula_aleatoria(self, lim_inferior, lim_superior):
-        for i in range(self.dimensao):
-            self.posicao.append(np.random.uniform(lim_inferior[i], lim_superior[i]))
+    def generate_random_particle(self, inf_limit, sup_limit):
+        for i in range(self.dimension):
+            self.position.append(np.random.uniform(inf_limit[i],sup_limit[i]))
+            self.velocity.append(0)
 
     def print(self):
-        print(self.posicao)
+        print(self.position)
    
 
-class Enxame:
+class Swarm:
     def __init__(self):
         self.particulas = []
-        self.melhor_posicao = None
-        self.printmelhor_fitness = None
+        self.best_position = None
+        self.best_fitness = None
         return
     
-    def gera_particulas_aleatorias(self, n_particulas, dimensao, lim_inferior, lim_superior):
-        for _ in range(n_particulas):
-            p = Particula(dimensao)
-            p.gera_particula_aleatoria(lim_inferior, lim_superior)
+    def gera_particulas_aleatorias(self, n_particles, dimension, inf_limit, sup_limit):
+        for _ in range(n_particles):
+            p = Particle(dimension)
+            p.generate_random_particle(inf_limit, sup_limit)
             self.particulas.append(p)
         return
 
     def print(self):
-        for particula in self.particulas:
-            particula.print()
+        for particle in self.particulas:
+            particle.print()
         return
 
-def run_pso():
-    dimensao = 2
-    lim_inferior = [-2,-2]
-    lim_superior = [2, 2]
-    n_particulas = 4
-    max_iteracoes = 10
-    swarm = Enxame()
-    swarm.gera_particulas_aleatorias(n_particulas, dimensao, lim_inferior, lim_superior)
+class PSO:
+    def __init__(self):
+        self.pso = None
 
-    iteracoes = 0
-    while iteracoes < max_iteracoes:
-        iteracoes += 1
+    def calculate_social_component(self, swarm, particle):
+        social_component = swarm.best_position - particle.position
+        return social_component
+
+    def calculate_velocities(self, swarm, pso):
+        velocities = []
+        for particle in swarm:
+            new_velocity = particle.velocity + (particle.best_position - particle.position) + (pso.calculate_social_component(swarm, particle))
+            velocities.append(new_velocity)
+        return velocities
+
+def run_pso():
+    pso = PSO()
+    dimension = 2
+    inf_limit, sup_limit = [2, 2]
+    n_particles = 4
+    max_iterations = 10
+    swarm = Swarm()
+    swarm.gera_particulas_aleatorias(n_particles, dimension, inf_limit, sup_limit)
+
+    velocities = []
+    velocities = pso.calculate_velocities(swarm, pso)
+    print(velocities)
+
+    iterations = 0
+    while iterations < max_iterations:
+        iterations += 1
+        swarm.print()
         print("aqui dentro")
     return
 
