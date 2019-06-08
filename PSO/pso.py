@@ -105,16 +105,17 @@ class PSO:
 
 def run_pso():
     pso = PSO()
+    problem = RastriginStrategy()
     dimension = 2
-    inf_limit, sup_limit = [2, 2]
+    inf_limit, sup_limit = rast.initialize_limits(dimension);
     n_particles = 4
     max_iterations = 10
     swarm = Swarm()
     swarm.gera_particulas_aleatorias(n_particles, dimension, inf_limit, sup_limit)
 
-    velocities = []
-    velocities = pso.calculate_velocities(swarm, pso)
-    print(velocities)
+    # velocities = []
+    # velocities = pso.calculate_velocities(swarm, pso)
+    # print(velocities)
 
     iterations = 0
     while iterations < max_iterations:
